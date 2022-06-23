@@ -60,6 +60,11 @@ namespace Microsoft.Azure.Gaming.AgentInterfaces
         public DateTime? NextScheduledMaintenanceUtc { get; set; }
 
         /// <summary>
+        /// Schedule of the next planned maintenance
+        /// </summary>
+        public MaintenanceSchedule NextScheduledMaintenance { get; set; }
+
+        /// <summary>
         /// Used by some legacy games such as Forza 5 for security handshake with the game client.
         /// </summary>
         public string SecureDeviceAddress { get; set; }

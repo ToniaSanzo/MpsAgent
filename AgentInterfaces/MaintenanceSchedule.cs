@@ -6,8 +6,16 @@ namespace Microsoft.Azure.Gaming.AgentInterfaces
     using System;
     using System.Collections.Generic;
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Converters;
 
-    // Data Format: https://docs.microsoft.com/en-us/azure/virtual-machines/virtual-machines-scheduled-events
+    [Serializable]
+    public class MaintenanceScheduleEx : MaintenanceSchedule
+    {
+        public MaintenanceReason MaintenanceReason { get; set; }
+    }
+
+    // Data Format: https://docs.microsoft.com/en-us/azure/virtual-machines/windows/scheduled-events
+    [Serializable]
     public class MaintenanceSchedule
     {
         public string DocumentIncarnation { get; set; }
@@ -19,6 +27,7 @@ namespace Microsoft.Azure.Gaming.AgentInterfaces
     }
 
     // https://docs.microsoft.com/en-us/azure/virtual-machines/windows/scheduled-events#query-for-events
+    [Serializable]
     public class MaintenanceEvent
     {
         public string EventId { get; set; }
@@ -37,5 +46,12 @@ namespace Microsoft.Azure.Gaming.AgentInterfaces
         public string EventSource { get; set; }
 
         public int DurationInSeconds { get; set; }
+    }
+
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum MaintenanceReason
+    {
+        Azure,
+        PlayFab
     }
 }
