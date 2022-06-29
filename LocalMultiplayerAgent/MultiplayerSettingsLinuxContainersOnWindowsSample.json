@@ -1,4 +1,4 @@
-﻿{
+﻿`{
   "RunContainer": true,
   "ForcePullFromAcrOnLinuxContainersOnWindows": false,
   "OutputFolder": "C:\\output\\UnityServerLinux",

@@ -1,13 +1,14 @@
 {
-  "RunContainer": false,
+    "RunContainer": false,
+    "CreateDeployment": true,
   "OutputFolder": "",
   "NumHeartBeatsForActivateResponse": 10,
   "NumHeartBeatsForTerminateResponse": 60,
   "AgentListeningPort": 56001,
   "AssetDetails": [
     {
-      "MountPath": "C:\\Assets",
-      "LocalFilePath": "<path_to_game_server_package>"
+        "MountPath": "C:\\Assets",
+        "LocalFilePath": "C:\\github\\PlayFab\\MpsSamples\\wrappingGsdk\\drop\\gameassets.zip"
     }
   ],
   "DeploymentMetadata": {
@@ -27,9 +28,9 @@
       }
     ]
   ],
-  "ProcessStartParameters": {
-    "StartGameCommand": "<your_game_server_exe>"
-  },
+    "ProcessStartParameters": {
+        "StartGameCommand": "wrapper.exe -g fakegame.exe arg1 arg2"
+    },
   "ContainerStartParameters": {
     "StartGameCommand": "C:\\Assets\\<your_game_server_exe>",
     "ResourceLimits": {
@@ -49,7 +50,7 @@
     "SessionCookie": null,
     "InitialPlayers": [ "Player1", "Player2" ]
   },
-  "TitleId": "",
+  "TitleId": "59F84",
   "BuildId": "00000000-0000-0000-0000-000000000000",
   "Region": "WestUs"
 }

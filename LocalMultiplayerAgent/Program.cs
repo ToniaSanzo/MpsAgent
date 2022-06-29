@@ -15,7 +15,13 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent
     using Newtonsoft.Json;
     using VmAgent.Core;
     using VmAgent.Core.Interfaces;
+    using PlayFab;
     using Microsoft.Azure.Gaming.VmAgent.Core.Dependencies;
+    //using PlayFabAllSDK;
+    using System.Collections.Generic;
+    using PlayFab.MultiplayerModels;
+
+    //using PlayFab.API.Entity.Models;
 
     public class Program
     {
@@ -37,10 +43,12 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent
             // lcow stands for Linux Containers On Windows => https://docs.microsoft.com/en-us/virtualization/windowscontainers/deploy-containers/linux-containers
             Globals.GameServerEnvironment = args.Contains("-lcow") && RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? GameServerEnvironment.Linux : GameServerEnvironment.Windows; // LocalMultiplayerAgent is running only on Windows for the time being
+            //process or container
             MultiplayerSettings settings = JsonConvert.DeserializeObject<MultiplayerSettings>(File.ReadAllText("MultiplayerSettings.json"));
+            DeploymentSettings settingsDeployment = JsonConvert.DeserializeObject<DeploymentSettings>(File.ReadAllText("deployment.json"));
 
             settings.SetDefaultsIfNotSpecified();
-
+            //validate .json
             MultiplayerSettingsValidator validator = new MultiplayerSettingsValidator(settings);
 
             if (!validator.IsValid())
@@ -57,6 +65,7 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent
             Console.WriteLine($"VmId: {vmId}");
 
             Globals.Settings = settings;
+            Globals.deploymentSettings = settingsDeployment;
             string rootOutputFolder = Path.Combine(settings.OutputFolder, "PlayFabVmAgentOutput", DateTime.Now.ToString("s").Replace(':', '-'));
             Console.WriteLine($"Root output folder: {rootOutputFolder}");
 
@@ -88,6 +97,84 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent
                 .CreateAndStartContainerWaitForExit(settings.ToSessionHostsStartInfo());
 
             await host.StopAsync();
+
+            SessionHostsStartInfo startparams = settings.ToSessionHostsStartInfo();
+
+            //check if everything looks good
+
+            ConsoleKey response = 0;
+            do
+            {
+                Console.Write("Do you want to go ahead and create a build? [y/n] ");
+                response = Console.ReadKey(false).Key;
+                
+                
+                
+                
+                
+                
+                if (response != ConsoleKey.Enter)
+                    Console.WriteLine();
+            } while (response != ConsoleKey.Y && response != ConsoleKey.N);
+
+            if (response == ConsoleKey.Y)
+            {
+                //Console.WriteLine(startparams.ToJsonString());
+                Console.WriteLine(settings.ToJsonString());
+
+                const string buildFriendlyName = "bbb";
+                string buildName = $"{buildFriendlyName}_{Guid.NewGuid()}";
+
+                IEnumerable< PlayFab.MultiplayerModels.Port > ports = null;
+
+                foreach (var portList in settings.PortMappingsList)
+                {
+                    ports = portList?.Select(x => new PlayFab.MultiplayerModels.Port()
+                    {
+                        Name = x.GamePort.Name, 
+                        Num = x.GamePort.Number,
+                        Protocol = (ProtocolType)Enum.Parse(typeof(ProtocolType), x.GamePort.Protocol)
+                    }).ToList();
+                }
+
+                // Clean up day old builds if for some reason they were not deleted (test runs halfway and cancelled, test box was unhappy, etc.)
+                //await Helpers.CleanupOldBuildsAsync(buildFriendlyName, _fixture);
+                PlayFabApiSettings apiSettings = new PlayFabApiSettings();
+                apiSettings.TitleId = settings.TitleId;
+                PlayFabAuthenticationContext context = new PlayFabAuthenticationContext(null, "NHxKc2JHWjNLWlFKYm9zd2xsVVRkeWlxY1N2V2tPRTA0WHJobVJTdStGNkJBPXx7ImkiOiIyMDIyLTA2LTI5VDE4OjMzOjMwLjg1NDQ2OTdaIiwiaWRwIjoiVW5rbm93biIsImUiOiIyMDIyLTA2LTMwVDE4OjMzOjMwLjg1NDQ2OTdaIiwidGlkIjoiYjkwMjg4N2MzYmI3NDJjNjliOTg2OGIxNjk0ZTg1NmEiLCJoIjoiRUQ1Njg0MDQyNDlEMjJGIiwiZWMiOiJ0aXRsZSE1RkVDOEU3N0I0RDYyM0YvNTlGODQvIiwiZWkiOiI1OUY4NCIsImV0IjoidGl0bGUifQ==", null, null, null);
+                PlayFabMultiplayerInstanceAPI ss = new PlayFabMultiplayerInstanceAPI(apiSettings, context);
+
+                CreateBuildWithProcessBasedServerRequest buildRequest = new()
+                {
+                    VmSize = AzureVmSize.Standard_D2a_v4,
+                    GameCertificateReferences = null,
+                    Ports = (List<PlayFab.MultiplayerModels.Port>)ports,
+                    Metadata = (Dictionary<string, string>)settings.DeploymentMetadata,
+                    MultiplayerServerCountPerVm = settingsDeployment.ServersPerVm,
+                    RegionConfigurations = settingsDeployment.RegionConfigurations?.Select(x => new BuildRegionParams()
+                    {
+                        Region = "EastUS",
+                        MaxServers = 10,
+                        StandbyServers = 5
+                    }).ToList(),
+                    BuildName = settingsDeployment.BuildName,
+                    GameAssetReferences = settings.AssetDetails?.Select(x => new AssetReferenceParams()
+                    {
+                        MountPath = x.MountPath,
+                        FileName = x.LocalFilePath
+                    }).ToList(),
+                    StartMultiplayerServerCommand = @"wrapper.exe -g fakegame.exe arg1 arg2",
+                    //buildRequest.GameWorkingDirectory = @"C:\Assets";
+                    OsPlatform = settingsDeployment.Platform
+                };
+
+                Console.WriteLine($"Starting deployment {buildName} for titleId, regions  {string.Join(", ", buildRequest.RegionConfigurations.Select(x => x.Region))}");
+
+                Task<PlayFabResult<CreateBuildWithProcessBasedServerResponse>> res = ss.CreateBuildWithProcessBasedServerAsync(buildRequest);
+                //CreateBuildWithProcessBasedServerResponse responseObj = await Helpers.GetActualResponseFromProcessRequestAsync(buildRequest, _fixture);
+                Console.WriteLine($"{res.Exception.Message}");
+                Console.WriteLine("done");
+            }
         }
     }
 }

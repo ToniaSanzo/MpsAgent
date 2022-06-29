@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace LocalMultiplayerAgent.Controllers
+namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent.Controllers
 {
     using System;
     using System.Collections.Concurrent;

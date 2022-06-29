@@ -82,11 +82,31 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent
             string typeSpecificId = sessionHostInfo.TypeSpecificId;
             
             _logger.LogInformation("Waiting for heartbeats from the game server.....");
+            //_logger.LogInformation($"{startParameters.ToJsonString()}");
 
             await sessionHostRunner.WaitOnServerExit(typeSpecificId).ConfigureAwait(false);
+            
             string logFolder = Path.Combine(Globals.VmConfiguration.VmDirectories.GameLogsRootFolderVm, sessionHostInfo.LogFolderId);
             await sessionHostRunner.CollectLogs(typeSpecificId, logFolder, sessionHostManager);
             await sessionHostRunner.TryDelete(typeSpecificId);
+
+            //put logic here
+
+            //_logger.LogInformation($"{startParameters.ToJsonString()}");
+
+            /*ConsoleKey response = 0;
+            do
+            {
+                Console.Write("Do you accept? [y/n] ");
+                response = Console.ReadKey(false).Key;
+                if (response != ConsoleKey.Enter)
+                    Console.WriteLine();
+            } while (response != ConsoleKey.Y && response != ConsoleKey.N);*/
+
+            //_logger.LogInformation($"{startParameters}");
+            // Console.WriteLine($"{startParameters}");
+
+
         }
 
         private void DownloadAndExtractAllAssets(SessionHostsStartInfo gameResourceDetails)
