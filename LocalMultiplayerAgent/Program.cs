@@ -20,11 +20,14 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent
     //using PlayFabAllSDK;
     using System.Collections.Generic;
     using PlayFab.MultiplayerModels;
+    using PlayFab.ClientModels;
+    using System.Threading;
 
     //using PlayFab.API.Entity.Models;
 
     public class Program
     {
+        private static bool _running = true;
         public static async Task Main(string[] args)
         {
 
@@ -139,10 +142,24 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent
 
                 // Clean up day old builds if for some reason they were not deleted (test runs halfway and cancelled, test box was unhappy, etc.)
                 //await Helpers.CleanupOldBuildsAsync(buildFriendlyName, _fixture);
-                PlayFabApiSettings apiSettings = new PlayFabApiSettings();
-                apiSettings.TitleId = settings.TitleId;
+                //PlayFabApiSettings apiSettings = new PlayFabApiSettings();
+                PlayFabSettings.staticSettings.TitleId = settings.TitleId;
+                //apiSettings.TitleId = settings.TitleId;
                 PlayFabAuthenticationContext context = new PlayFabAuthenticationContext(null, "NHxKc2JHWjNLWlFKYm9zd2xsVVRkeWlxY1N2V2tPRTA0WHJobVJTdStGNkJBPXx7ImkiOiIyMDIyLTA2LTI5VDE4OjMzOjMwLjg1NDQ2OTdaIiwiaWRwIjoiVW5rbm93biIsImUiOiIyMDIyLTA2LTMwVDE4OjMzOjMwLjg1NDQ2OTdaIiwidGlkIjoiYjkwMjg4N2MzYmI3NDJjNjliOTg2OGIxNjk0ZTg1NmEiLCJoIjoiRUQ1Njg0MDQyNDlEMjJGIiwiZWMiOiJ0aXRsZSE1RkVDOEU3N0I0RDYyM0YvNTlGODQvIiwiZWkiOiI1OUY4NCIsImV0IjoidGl0bGUifQ==", null, null, null);
-                PlayFabMultiplayerInstanceAPI ss = new PlayFabMultiplayerInstanceAPI(apiSettings, context);
+                //PlayFabMultiplayerInstanceAPI ss = new PlayFabMultiplayerInstanceAPI(apiSettings, context);
+                var request = new LoginWithCustomIDRequest { CustomId = "GettingStartedGuide", CreateAccount = true }; 
+                var loginTask = PlayFabClientAPI.LoginWithCustomIDAsync(request);
+
+                while (_running)
+                {
+                    if (loginTask.IsCompleted) // You would probably want a more sophisticated way of tracking pending async API calls in a real game
+                    {
+                        OnLoginComplete(loginTask);
+                    }
+
+                    // Presumably this would be your main game loop, doing other things
+                    Thread.Sleep(1);
+                }
 
                 CreateBuildWithProcessBasedServerRequest buildRequest = new()
                 {
@@ -170,11 +187,34 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent
 
                 Console.WriteLine($"Starting deployment {buildName} for titleId, regions  {string.Join(", ", buildRequest.RegionConfigurations.Select(x => x.Region))}");
 
-                Task<PlayFabResult<CreateBuildWithProcessBasedServerResponse>> res = ss.CreateBuildWithProcessBasedServerAsync(buildRequest);
+                Task<PlayFabResult<CreateBuildWithProcessBasedServerResponse>> res = PlayFabMultiplayerAPI.CreateBuildWithProcessBasedServerAsync(buildRequest);
                 //CreateBuildWithProcessBasedServerResponse responseObj = await Helpers.GetActualResponseFromProcessRequestAsync(buildRequest, _fixture);
                 Console.WriteLine($"{res.Exception.Message}");
                 Console.WriteLine("done");
             }
         }
+
+        private static void OnLoginComplete(Task<PlayFabResult<LoginResult>> taskResult)
+        {
+            var apiError = taskResult.Result.Error;
+            var apiResult = taskResult.Result.Result;
+
+            if (apiError != null)
+            {
+                Console.ForegroundColor = ConsoleColor.Red; // Make the error more visible
+                Console.WriteLine("Something went wrong with your first API call.  :(");
+                Console.WriteLine("Here's some debug information:");
+                Console.WriteLine(PlayFabUtil.GenerateErrorReport(apiError));
+                Console.ForegroundColor = ConsoleColor.Gray; // Reset to normal
+            }
+            else if (apiResult != null)
+            {
+                Console.WriteLine("Congratulations, you made your first successful API call!");
+            }
+
+            _running = false; // Because this is just an example, successful login triggers the end of the program
+        }
     }
+
+
 }
