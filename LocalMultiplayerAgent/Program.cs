@@ -145,7 +145,7 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent
                 //PlayFabApiSettings apiSettings = new PlayFabApiSettings();
                 PlayFabSettings.staticSettings.TitleId = settings.TitleId;
                 //apiSettings.TitleId = settings.TitleId;
-                PlayFabAuthenticationContext context = new PlayFabAuthenticationContext(null, "NHxKc2JHWjNLWlFKYm9zd2xsVVRkeWlxY1N2V2tPRTA0WHJobVJTdStGNkJBPXx7ImkiOiIyMDIyLTA2LTI5VDE4OjMzOjMwLjg1NDQ2OTdaIiwiaWRwIjoiVW5rbm93biIsImUiOiIyMDIyLTA2LTMwVDE4OjMzOjMwLjg1NDQ2OTdaIiwidGlkIjoiYjkwMjg4N2MzYmI3NDJjNjliOTg2OGIxNjk0ZTg1NmEiLCJoIjoiRUQ1Njg0MDQyNDlEMjJGIiwiZWMiOiJ0aXRsZSE1RkVDOEU3N0I0RDYyM0YvNTlGODQvIiwiZWkiOiI1OUY4NCIsImV0IjoidGl0bGUifQ==", null, null, null);
+                //PlayFabAuthenticationContext context = new PlayFabAuthenticationContext(null, "NHxKc2JHWjNLWlFKYm9zd2xsVVRkeWlxY1N2V2tPRTA0WHJobVJTdStGNkJBPXx7ImkiOiIyMDIyLTA2LTI5VDE4OjMzOjMwLjg1NDQ2OTdaIiwiaWRwIjoiVW5rbm93biIsImUiOiIyMDIyLTA2LTMwVDE4OjMzOjMwLjg1NDQ2OTdaIiwidGlkIjoiYjkwMjg4N2MzYmI3NDJjNjliOTg2OGIxNjk0ZTg1NmEiLCJoIjoiRUQ1Njg0MDQyNDlEMjJGIiwiZWMiOiJ0aXRsZSE1RkVDOEU3N0I0RDYyM0YvNTlGODQvIiwiZWkiOiI1OUY4NCIsImV0IjoidGl0bGUifQ==", null, null, null);
                 //PlayFabMultiplayerInstanceAPI ss = new PlayFabMultiplayerInstanceAPI(apiSettings, context);
                 var request = new LoginWithCustomIDRequest { CustomId = "GettingStartedGuide", CreateAccount = true }; 
                 var loginTask = PlayFabClientAPI.LoginWithCustomIDAsync(request);
