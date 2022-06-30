@@ -7,7 +7,6 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent
     using System.IO;
     using System.Linq;
     using System.Runtime.InteropServices;
-    using System.Reflection;
     using System.Threading.Tasks;
     using AgentInterfaces;
     using AspNetCore.Hosting;
@@ -15,19 +14,10 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent
     using Newtonsoft.Json;
     using VmAgent.Core;
     using VmAgent.Core.Interfaces;
-    using PlayFab;
-    using Microsoft.Azure.Gaming.VmAgent.Core.Dependencies;
-    //using PlayFabAllSDK;
-    using System.Collections.Generic;
-    using PlayFab.MultiplayerModels;
-    using PlayFab.ClientModels;
-    using System.Threading;
-
-    //using PlayFab.API.Entity.Models;
+    using Microsoft.Azure.Gaming.LocalMultiplayerAgent.MPSDeploymentTool;
 
     public class Program
     {
-        private static bool _running = true;
         public static async Task Main(string[] args)
         {
 
@@ -46,9 +36,16 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent
             // lcow stands for Linux Containers On Windows => https://docs.microsoft.com/en-us/virtualization/windowscontainers/deploy-containers/linux-containers
             Globals.GameServerEnvironment = args.Contains("-lcow") && RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? GameServerEnvironment.Linux : GameServerEnvironment.Windows; // LocalMultiplayerAgent is running only on Windows for the time being
-            //process or container
+                                                                               //process or container
             MultiplayerSettings settings = JsonConvert.DeserializeObject<MultiplayerSettings>(File.ReadAllText("MultiplayerSettings.json"));
             DeploymentSettings settingsDeployment = JsonConvert.DeserializeObject<DeploymentSettings>(File.ReadAllText("deployment.json"));
+
+            //////////////// Emmanuel Code For Deployment Script ///////////////////////////
+            DeploymentScript deploymentScript = new DeploymentScript(settings);
+            await deploymentScript.RunScriptAsync();
+
+            return;
+            ////////////////////////////////////////////////////////////////////////////////
 
             settings.SetDefaultsIfNotSpecified();
             //validate .json
@@ -102,117 +99,6 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent
             await host.StopAsync();
 
             SessionHostsStartInfo startparams = settings.ToSessionHostsStartInfo();
-
-            //check if everything looks good
-
-            ConsoleKey response = 0;
-            do
-            {
-                Console.Write("Do you want to go ahead and create a build? [y/n] ");
-                response = Console.ReadKey(false).Key;
-                
-                
-                
-                
-                
-                
-                if (response != ConsoleKey.Enter)
-                    Console.WriteLine();
-            } while (response != ConsoleKey.Y && response != ConsoleKey.N);
-
-            if (response == ConsoleKey.Y)
-            {
-                //Console.WriteLine(startparams.ToJsonString());
-                Console.WriteLine(settings.ToJsonString());
-
-                const string buildFriendlyName = "bbb";
-                string buildName = $"{buildFriendlyName}_{Guid.NewGuid()}";
-
-                IEnumerable< PlayFab.MultiplayerModels.Port > ports = null;
-
-                foreach (var portList in settings.PortMappingsList)
-                {
-                    ports = portList?.Select(x => new PlayFab.MultiplayerModels.Port()
-                    {
-                        Name = x.GamePort.Name, 
-                        Num = x.GamePort.Number,
-                        Protocol = (ProtocolType)Enum.Parse(typeof(ProtocolType), x.GamePort.Protocol)
-                    }).ToList();
-                }
-
-                // Clean up day old builds if for some reason they were not deleted (test runs halfway and cancelled, test box was unhappy, etc.)
-                //await Helpers.CleanupOldBuildsAsync(buildFriendlyName, _fixture);
-                //PlayFabApiSettings apiSettings = new PlayFabApiSettings();
-                PlayFabSettings.staticSettings.TitleId = settings.TitleId;
-                //apiSettings.TitleId = settings.TitleId;
-                PlayFabAuthenticationContext context = new PlayFabAuthenticationContext(null, "NHxKc2JHWjNLWlFKYm9zd2xsVVRkeWlxY1N2V2tPRTA0WHJobVJTdStGNkJBPXx7ImkiOiIyMDIyLTA2LTI5VDE4OjMzOjMwLjg1NDQ2OTdaIiwiaWRwIjoiVW5rbm93biIsImUiOiIyMDIyLTA2LTMwVDE4OjMzOjMwLjg1NDQ2OTdaIiwidGlkIjoiYjkwMjg4N2MzYmI3NDJjNjliOTg2OGIxNjk0ZTg1NmEiLCJoIjoiRUQ1Njg0MDQyNDlEMjJGIiwiZWMiOiJ0aXRsZSE1RkVDOEU3N0I0RDYyM0YvNTlGODQvIiwiZWkiOiI1OUY4NCIsImV0IjoidGl0bGUifQ==", null, null, null);
-                //PlayFabMultiplayerInstanceAPI ss = new PlayFabMultiplayerInstanceAPI(apiSettings, context);
-                var request = new LoginWithCustomIDRequest { CustomId = "GettingStartedGuide", CreateAccount = true }; 
-                var loginTask = PlayFabClientAPI.LoginWithCustomIDAsync(request);
-
-                while (_running)
-                {
-                    if (loginTask.IsCompleted) // You would probably want a more sophisticated way of tracking pending async API calls in a real game
-                    {
-                        OnLoginComplete(loginTask);
-                    }
-
-                    // Presumably this would be your main game loop, doing other things
-                    Thread.Sleep(1);
-                }
-
-                CreateBuildWithProcessBasedServerRequest buildRequest = new()
-                {
-                    VmSize = AzureVmSize.Standard_D2a_v4,
-                    GameCertificateReferences = null,
-                    Ports = (List<PlayFab.MultiplayerModels.Port>)ports,
-                    Metadata = (Dictionary<string, string>)settings.DeploymentMetadata,
-                    MultiplayerServerCountPerVm = settingsDeployment.ServersPerVm,
-                    RegionConfigurations = settingsDeployment.RegionConfigurations?.Select(x => new BuildRegionParams()
-                    {
-                        Region = "EastUS",
-                        MaxServers = 10,
-                        StandbyServers = 5
-                    }).ToList(),
-                    BuildName = settingsDeployment.BuildName,
-                    GameAssetReferences = settings.AssetDetails?.Select(x => new AssetReferenceParams()
-                    {
-                        MountPath = x.MountPath,
-                        FileName = x.LocalFilePath
-                    }).ToList(),
-                    StartMultiplayerServerCommand = @"wrapper.exe -g fakegame.exe arg1 arg2",
-                    //buildRequest.GameWorkingDirectory = @"C:\Assets";
-                    OsPlatform = settingsDeployment.Platform
-                };
-
-                Console.WriteLine($"Starting deployment {buildName} for titleId, regions  {string.Join(", ", buildRequest.RegionConfigurations.Select(x => x.Region))}");
-
-                Task<PlayFabResult<CreateBuildWithProcessBasedServerResponse>> res = PlayFabMultiplayerAPI.CreateBuildWithProcessBasedServerAsync(buildRequest);
-                //CreateBuildWithProcessBasedServerResponse responseObj = await Helpers.GetActualResponseFromProcessRequestAsync(buildRequest, _fixture);
-                Console.WriteLine($"{res.Exception.Message}");
-                Console.WriteLine("done");
-            }
-        }
-
-        private static void OnLoginComplete(Task<PlayFabResult<LoginResult>> taskResult)
-        {
-            var apiError = taskResult.Result.Error;
-            var apiResult = taskResult.Result.Result;
-
-            if (apiError != null)
-            {
-                Console.ForegroundColor = ConsoleColor.Red; // Make the error more visible
-                Console.WriteLine("Something went wrong with your first API call.  :(");
-                Console.WriteLine("Here's some debug information:");
-                Console.WriteLine(PlayFabUtil.GenerateErrorReport(apiError));
-                Console.ForegroundColor = ConsoleColor.Gray; // Reset to normal
-            }
-            else if (apiResult != null)
-            {
-                Console.WriteLine("Congratulations, you made your first successful API call!");
-            }
-
-            _running = false; // Because this is just an example, successful login triggers the end of the program
         }
     }
 
