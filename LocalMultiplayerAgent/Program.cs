@@ -145,12 +145,12 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent
                 //PlayFabApiSettings apiSettings = new PlayFabApiSettings();
                 PlayFabSettings.staticSettings.TitleId = settings.TitleId;
                 //apiSettings.TitleId = settings.TitleId;
-                //PlayFabAuthenticationContext context = new PlayFabAuthenticationContext(null, "NHxKc2JHWjNLWlFKYm9zd2xsVVRkeWlxY1N2V2tPRTA0WHJobVJTdStGNkJBPXx7ImkiOiIyMDIyLTA2LTI5VDE4OjMzOjMwLjg1NDQ2OTdaIiwiaWRwIjoiVW5rbm93biIsImUiOiIyMDIyLTA2LTMwVDE4OjMzOjMwLjg1NDQ2OTdaIiwidGlkIjoiYjkwMjg4N2MzYmI3NDJjNjliOTg2OGIxNjk0ZTg1NmEiLCJoIjoiRUQ1Njg0MDQyNDlEMjJGIiwiZWMiOiJ0aXRsZSE1RkVDOEU3N0I0RDYyM0YvNTlGODQvIiwiZWkiOiI1OUY4NCIsImV0IjoidGl0bGUifQ==", null, null, null);
+                PlayFabAuthenticationContext context = new PlayFabAuthenticationContext(null, "NHxKc2JHWjNLWlFKYm9zd2xsVVRkeWlxY1N2V2tPRTA0WHJobVJTdStGNkJBPXx7ImkiOiIyMDIyLTA2LTI5VDE4OjMzOjMwLjg1NDQ2OTdaIiwiaWRwIjoiVW5rbm93biIsImUiOiIyMDIyLTA2LTMwVDE4OjMzOjMwLjg1NDQ2OTdaIiwidGlkIjoiYjkwMjg4N2MzYmI3NDJjNjliOTg2OGIxNjk0ZTg1NmEiLCJoIjoiRUQ1Njg0MDQyNDlEMjJGIiwiZWMiOiJ0aXRsZSE1RkVDOEU3N0I0RDYyM0YvNTlGODQvIiwiZWkiOiI1OUY4NCIsImV0IjoidGl0bGUifQ==", null, null, null);
                 //PlayFabMultiplayerInstanceAPI ss = new PlayFabMultiplayerInstanceAPI(apiSettings, context);
-                var request = new LoginWithCustomIDRequest { CustomId = "GettingStartedGuide", CreateAccount = true }; 
-                var loginTask = PlayFabClientAPI.LoginWithCustomIDAsync(request);
+                //var request = new LoginWithCustomIDRequest { CustomId = "GettingStartedGuide", CreateAccount = true }; 
+                //var loginTask = PlayFabClientAPI.LoginWithCustomIDAsync(request);
 
-                while (_running)
+                /*while (_running)
                 {
                     if (loginTask.IsCompleted) // You would probably want a more sophisticated way of tracking pending async API calls in a real game
                     {
@@ -159,15 +159,16 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent
 
                     // Presumably this would be your main game loop, doing other things
                     Thread.Sleep(1);
-                }
+                }*/
 
                 CreateBuildWithProcessBasedServerRequest buildRequest = new()
                 {
+                    AuthenticationContext = context,
                     VmSize = AzureVmSize.Standard_D2a_v4,
                     GameCertificateReferences = null,
                     Ports = (List<PlayFab.MultiplayerModels.Port>)ports,
                     Metadata = (Dictionary<string, string>)settings.DeploymentMetadata,
-                    MultiplayerServerCountPerVm = settingsDeployment.ServersPerVm,
+                    MultiplayerServerCountPerVm = settingsDeployment.MultiplayerServerCountPerVm,
                     RegionConfigurations = settingsDeployment.RegionConfigurations?.Select(x => new BuildRegionParams()
                     {
                         Region = "EastUS",
@@ -182,19 +183,19 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent
                     }).ToList(),
                     StartMultiplayerServerCommand = @"wrapper.exe -g fakegame.exe arg1 arg2",
                     //buildRequest.GameWorkingDirectory = @"C:\Assets";
-                    OsPlatform = settingsDeployment.Platform
+                    OsPlatform = settingsDeployment.OSPlatform
                 };
 
                 Console.WriteLine($"Starting deployment {buildName} for titleId, regions  {string.Join(", ", buildRequest.RegionConfigurations.Select(x => x.Region))}");
 
-                Task<PlayFabResult<CreateBuildWithProcessBasedServerResponse>> res = PlayFabMultiplayerAPI.CreateBuildWithProcessBasedServerAsync(buildRequest);
+                var res = await PlayFabMultiplayerAPI.CreateBuildWithProcessBasedServerAsync(buildRequest);
                 //CreateBuildWithProcessBasedServerResponse responseObj = await Helpers.GetActualResponseFromProcessRequestAsync(buildRequest, _fixture);
-                Console.WriteLine($"{res.Exception.Message}");
+                //Console.WriteLine($"{res.Exception.Message}");
                 Console.WriteLine("done");
             }
         }
 
-        private static void OnLoginComplete(Task<PlayFabResult<LoginResult>> taskResult)
+        /*private static void OnLoginComplete(Task<PlayFabResult<LoginResult>> taskResult)
         {
             var apiError = taskResult.Result.Error;
             var apiResult = taskResult.Result.Result;
@@ -213,7 +214,7 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent
             }
 
             _running = false; // Because this is just an example, successful login triggers the end of the program
-        }
+        }*/
     }
 
 
