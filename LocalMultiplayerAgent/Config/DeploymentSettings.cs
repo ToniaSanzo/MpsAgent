@@ -13,9 +13,9 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent.Config
 
         public string VmSize { get; set; }
 
-        public int ServersPerVm { get; set; }
+        public int MultiplayerServerCountPerVm { get; set; }
 
-        public string Platform { get; set; }
+        public string OSPlatform { get; set; }
 
         public IEnumerable<RegionConfiguration> RegionConfigurations { get; set; }
 
