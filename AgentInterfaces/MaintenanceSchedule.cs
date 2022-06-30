@@ -19,10 +19,6 @@ namespace Microsoft.Azure.Gaming.AgentInterfaces
 
         public string ReportingVmId { get; set; }
 
-        /// <summary>
-        /// The source of the maintenance event. It can be either Azure or PlayFab
-        /// </summary>
-        public string MaintenanceSource { get; set; }
     }
 
     // https://docs.microsoft.com/en-us/azure/virtual-machines/windows/scheduled-events#query-for-events
