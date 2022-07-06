@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent.Config
+namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent.DeploymentTool
 {
     using System;
     using System.Collections.Generic;
@@ -17,11 +17,6 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent.Config
 
         public string OSPlatform { get; set; }
 
-        public IEnumerable<RegionConfiguration> RegionConfigurations { get; set; }
-
-
-        /*public ContainerImageDetails ImageDetails { get; set; }
-
-        public string StartGameCommand { get; set; }*/
+        public List<RegionConfiguration> RegionConfigurations { get; set; }
     }
 }

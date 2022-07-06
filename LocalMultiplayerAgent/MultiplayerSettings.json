@@ -2,8 +2,8 @@
     "RunContainer": false,
     "CreateDeployment": true,
   "OutputFolder": "",
-  "NumHeartBeatsForActivateResponse": 10,
-  "NumHeartBeatsForTerminateResponse": 60,
+  "NumHeartBeatsForActivateResponse": 5,
+  "NumHeartBeatsForTerminateResponse": 10,
   "AgentListeningPort": 56001,
   "AssetDetails": [
     {
@@ -19,7 +19,7 @@
   "PortMappingsList": [
     [
       {
-        "NodePort": 56100,
+        "NodePort": 56104,
         "GamePort": {
           "Name": "game_port",
           "Number": 3600,

@@ -3,12 +3,12 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
 using PlayFab;
 using PlayFab.MultiplayerModels;
 using System.IO;
+using Microsoft.Azure.Gaming.LocalMultiplayerAgent.DeploymentTool;
+using Microsoft.WindowsAzure.Storage.Blob;
 
 namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent.MPSDeploymentTool
 {
@@ -19,8 +19,7 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent.MPSDeploymentTool
         public DeploymentScript(MultiplayerSettings multiplayerSettings)
         {
             settings = multiplayerSettings;
-            settingsDeployment = JsonConvert.DeserializeObject<DeploymentSettings>(File.ReadAllText("deployment.json"));
-            Globals.deploymentSettings = settingsDeployment;
+            settingsDeployment = JsonConvert.DeserializeObject<DeploymentSettings>(File.ReadAllText("DeploymentTool/deployment.json"));
         }
 
         public async Task RunScriptAsync()
@@ -28,7 +27,19 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent.MPSDeploymentTool
             const string buildFriendlyName = "bbb";
             string buildName = $"{buildFriendlyName}_{Guid.NewGuid()}";
 
-            IEnumerable<PlayFab.MultiplayerModels.Port> ports = null;
+            PlayFabSettings.staticSettings.TitleId = settings.TitleId;
+
+            string secret = Environment.GetEnvironmentVariable("PF_SECRET");
+            if (string.IsNullOrEmpty(secret))
+            {
+                Console.WriteLine("Enter developer secret key");
+                PlayFabSettings.staticSettings.DeveloperSecretKey = Console.ReadLine();
+            }
+
+           var req = new PlayFab.AuthenticationModels.GetEntityTokenRequest();
+            var res = await PlayFabAuthenticationAPI.GetEntityTokenAsync(req);
+
+            List<PlayFab.MultiplayerModels.Port> ports = null;
 
             foreach (var portList in settings.PortMappingsList)
             {
@@ -40,26 +51,11 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent.MPSDeploymentTool
                 }).ToList();
             }
 
-            // Clean up day old builds if for some reason they were not deleyted (test runs halfway and cancelled, test box was unhappy, etc.)
-            //await Helpers.CleanupOldBuildsAsync(buildFriendlyName, _fixture);
-            PlayFabApiSettings apiSettings = new PlayFabApiSettings();
-            PlayFabSettings.staticSettings.TitleId = "59F84";
-            PlayFabSettings.staticSettings.DeveloperSecretKey = "KGY76BMR3XJISEONHPU8US1FIUUZEUMYGUEZZMSEJ6E8QUQUBB";
-            var req = new PlayFab.AuthenticationModels.GetEntityTokenRequest();
-            var res = await PlayFabAuthenticationAPI.GetEntityTokenAsync(req);
-            apiSettings.TitleId = "59F84";
-            PlayFabAuthenticationContext context = new PlayFabAuthenticationContext(null,
-                "NHxjcDhMdCtYaHJrTmxxUkJLalk2RDY4TXc1NGRZZ2NsV3cwTlpKcHozWXNNPXx7ImkiOiIyMDIyLTA2LTMwVDE5OjQ1OjA2LjM5MDcyNzJaIiwiaWRwIjoiVW5rbm93biIsImUiOiIyMDIyLTA3LTAxVDE5OjQ1OjA2LjM5MDcyNzJaIiwidGlkIjoiNzAxMmQ2YzJhMzcxNDdjYmFkMjFmYjJhMzkzZGZiMTAiLCJoIjoiRUQ1Njg0MDQyNDlEMjJGIiwiZWMiOiJ0aXRsZSE1RkVDOEU3N0I0RDYyM0YvNTlGODQvIiwiZWkiOiI1OUY4NCIsImV0IjoidGl0bGUifQ==", null, null, null);
-            PlayFabMultiplayerInstanceAPI ss = new PlayFabMultiplayerInstanceAPI(apiSettings, context);
-
-            CreateBuildWithProcessBasedServerRequest buildRequest = new()
+            /*CreateBuildWithProcessBasedServerRequest processBuildRequest = new()
             {
                 VmSize = AzureVmSize.Standard_D1_v2,
                 GameCertificateReferences = null,
-                Ports = settings.PortMappingsList?.Select(x => new PlayFab.MultiplayerModels.Port()
-                {
-                    Name = "game_port"
-                }).ToList(),
+                Ports = ports,
                 MultiplayerServerCountPerVm = 1,
                 RegionConfigurations = settingsDeployment.RegionConfigurations?.Select(x => new BuildRegionParams()
                 {
@@ -78,12 +74,79 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent.MPSDeploymentTool
                 StartMultiplayerServerCommand = @"wrapper.exe -g fakegame.exe arg1 arg2",
                 //buildRequest.GameWorkingDirectory = @"C:\Assets";
                 OsPlatform = "Windows"
+            };*/
+
+            CreateBuildWithManagedContainerRequest winConBuildRequest = new()
+            {
+                VmSize = AzureVmSize.Standard_D1_v2,
+                GameCertificateReferences = null,
+                Ports = ports,
+                MultiplayerServerCountPerVm = 1,
+                RegionConfigurations = settingsDeployment.RegionConfigurations?.Select(x => new BuildRegionParams()
+                {
+                    Region = "WestUS",
+                    MaxServers = 1,
+                    StandbyServers = 1,
+                    MultiplayerServerCountPerVm = 1,
+                    VmSize = AzureVmSize.Standard_D1_v2
+
+                }).ToList(),
+                BuildName = settingsDeployment.BuildName,
+                GameAssetReferences = settings.AssetDetails?.Select(x => new AssetReferenceParams()
+                {
+                    FileName = "gameassets.zip",
+                    MountPath = x.MountPath
+                }).ToList(),
+                StartMultiplayerServerCommand = settings.ContainerStartParameters.StartGameCommand,
+                //buildRequest.GameWorkingDirectory = @"C:\Assets";
+                ContainerFlavor = "Windows" == settingsDeployment.OSPlatform ? ContainerFlavor.ManagedWindowsServerCore : ContainerFlavor.CustomLinux
             };
 
-            Console.WriteLine($"Starting deployment {buildName} for titleId, regions  {string.Join(", ", buildRequest.RegionConfigurations.Select(x => x.Region))}");
+            GetAssetDownloadUrlRequest downloadRequest = new() { FileName = "gamified.zip" };
 
-            var res2 = await PlayFabMultiplayerAPI.CreateBuildWithProcessBasedServerAsync(buildRequest);
-            //CreateBuildWithProcessBasedServerResponse responseObj = await Helpers.GetActualResponseFromProcessRequestAsync(buildRequest, _fixture);
+            var uriDownResult = await PlayFabMultiplayerAPI.GetAssetDownloadUrlAsync(downloadRequest);
+
+            if (uriDownResult == null)
+            {
+                GetAssetUploadUrlRequest request1 = new() { FileName = "gamified.zip" };
+
+                var uriResult = await PlayFabMultiplayerAPI.GetAssetUploadUrlAsync(request1);
+
+                //check for error
+                if (uriResult.Error != null)
+                {
+                    Console.WriteLine(uriResult.Error.ErrorMessage);
+                }
+                var uri = new System.Uri(uriResult.Result.AssetUploadUrl);
+
+                var blockBlob = new CloudBlockBlob(uri);
+                var file = @"C:\\github\\PlayFab\\MpsSamples\\wrappingGsdk\\drop\\gameassets.zip";  //your file location
+                await blockBlob.UploadFromFileAsync(file);
+            }
+
+            else if (uriDownResult.Error != null)
+            {
+                Console.WriteLine($"{uriDownResult.Error.ErrorMessage}");
+            }
+
+            
+
+            Console.WriteLine($"Starting deployment {buildName} for titleId, regions  {string.Join(", ", winConBuildRequest.RegionConfigurations.Select(x => x.Region))}");
+
+            var res2 = await PlayFabMultiplayerAPI.CreateBuildWithManagedContainerAsync(winConBuildRequest); 
+
+            if (res2.Error != null)
+            {
+                foreach(var err in res2.Error.ErrorDetails)
+                {
+                    foreach (var mess in err.Value)
+                    {
+                        Console.WriteLine($"{mess}");
+                    }
+                    
+                }
+                
+            }
             Console.WriteLine("done");
             }
         }

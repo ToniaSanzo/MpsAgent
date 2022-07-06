@@ -38,17 +38,7 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent
                 ? GameServerEnvironment.Linux : GameServerEnvironment.Windows; // LocalMultiplayerAgent is running only on Windows for the time being
                                                                                //process or container
             MultiplayerSettings settings = JsonConvert.DeserializeObject<MultiplayerSettings>(File.ReadAllText("MultiplayerSettings.json"));
-            DeploymentSettings settingsDeployment = JsonConvert.DeserializeObject<DeploymentSettings>(File.ReadAllText("deployment.json"));
-
-            //////////////// Emmanuel Code For Deployment Script ///////////////////////////
-            DeploymentScript deploymentScript = new DeploymentScript(settings);
-            await deploymentScript.RunScriptAsync();
-
-            return;
-            ////////////////////////////////////////////////////////////////////////////////
-
             settings.SetDefaultsIfNotSpecified();
-            //validate .json
             MultiplayerSettingsValidator validator = new MultiplayerSettingsValidator(settings);
 
             if (!validator.IsValid())
@@ -65,11 +55,10 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent
             Console.WriteLine($"VmId: {vmId}");
 
             Globals.Settings = settings;
-            Globals.deploymentSettings = settingsDeployment;
             string rootOutputFolder = Path.Combine(settings.OutputFolder, "PlayFabVmAgentOutput", DateTime.Now.ToString("s").Replace(':', '-'));
             Console.WriteLine($"Root output folder: {rootOutputFolder}");
 
-            VmDirectories vmDirectories = new VmDirectories(rootOutputFolder);
+            VmDirectories vmDirectories = new (rootOutputFolder);
 
             Globals.VmConfiguration = new VmConfiguration(settings.AgentListeningPort, vmId, vmDirectories, false);
             if (Globals.GameServerEnvironment == GameServerEnvironment.Linux && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -98,7 +87,10 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent
 
             await host.StopAsync();
 
-            SessionHostsStartInfo startparams = settings.ToSessionHostsStartInfo();
+            DeploymentScript deploymentScript = new DeploymentScript(settings);
+            await deploymentScript.RunScriptAsync();
+
+            return;
         }
     }
 

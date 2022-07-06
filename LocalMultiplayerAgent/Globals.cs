@@ -17,7 +17,6 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent
     {
         public static MultiplayerSettings Settings;
 
-        public static DeploymentSettings deploymentSettings;
 
         // Value updated from settings.json
         public static SessionConfig SessionConfig = null;
