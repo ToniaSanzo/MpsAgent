@@ -51,6 +51,31 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent.MPSDeploymentTool
                 }).ToList();
             }
 
+            var buildRequest = new CreateBuildWithCustomContainerRequest
+            {
+                BuildName = buildName,
+                VmSize = AzureVmSize.Standard_D1_v2,
+                ContainerFlavor = ContainerFlavor.CustomLinux,
+                //ContainerRepositoryName = containerRegistryCredentials.Data.DnsName,
+                ContainerImageReference = new ContainerImageReference()
+                {
+                    ImageName = settings.ContainerStartParameters.ImageDetails.ImageName,
+                    Tag = settings.ContainerStartParameters.ImageDetails.ImageTag
+                },
+                Ports = ports,
+                ContainerRunCommand = settings.ContainerStartParameters.StartGameCommand,
+                RegionConfigurations = settingsDeployment.RegionConfigurations?.Select(x => new BuildRegionParams()
+                {
+                    Region = x.Region,
+                    MaxServers = x.MaxServers,
+                    StandbyServers = x.StandbyServers,
+                    MultiplayerServerCountPerVm = settingsDeployment.MultiplayerServerCountPerVm,
+                    VmSize = AzureVmSize.Standard_D1_v2
+
+                }).ToList(),
+                MultiplayerServerCountPerVm = settingsDeployment.MultiplayerServerCountPerVm,
+            };
+
             /*CreateBuildWithProcessBasedServerRequest processBuildRequest = new()
             {
                 VmSize = AzureVmSize.Standard_D1_v2,
@@ -76,39 +101,39 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent.MPSDeploymentTool
                 OsPlatform = "Windows"
             };*/
 
-            CreateBuildWithManagedContainerRequest winConBuildRequest = new()
+            CreateBuildWithManagedContainerRequest managedContainerBuildRequest = new()
             {
                 VmSize = AzureVmSize.Standard_D1_v2,
                 GameCertificateReferences = null,
                 Ports = ports,
-                MultiplayerServerCountPerVm = 1,
+                MultiplayerServerCountPerVm = settingsDeployment.MultiplayerServerCountPerVm,
                 RegionConfigurations = settingsDeployment.RegionConfigurations?.Select(x => new BuildRegionParams()
                 {
-                    Region = "WestUS",
-                    MaxServers = 1,
-                    StandbyServers = 1,
-                    MultiplayerServerCountPerVm = 1,
+                    Region = x.Region,
+                    MaxServers = x.MaxServers,
+                    StandbyServers = x.StandbyServers,
+                    MultiplayerServerCountPerVm = settingsDeployment.MultiplayerServerCountPerVm,
                     VmSize = AzureVmSize.Standard_D1_v2
 
                 }).ToList(),
                 BuildName = settingsDeployment.BuildName,
                 GameAssetReferences = settings.AssetDetails?.Select(x => new AssetReferenceParams()
                 {
-                    FileName = "gameassets.zip",
+                    FileName = settingsDeployment.AssetFileName,
                     MountPath = x.MountPath
                 }).ToList(),
                 StartMultiplayerServerCommand = settings.ContainerStartParameters.StartGameCommand,
                 //buildRequest.GameWorkingDirectory = @"C:\Assets";
-                ContainerFlavor = "Windows" == settingsDeployment.OSPlatform ? ContainerFlavor.ManagedWindowsServerCore : ContainerFlavor.CustomLinux
+                ContainerFlavor = ContainerFlavor.ManagedWindowsServerCore
             };
 
-            GetAssetDownloadUrlRequest downloadRequest = new() { FileName = "gamified.zip" };
+            GetAssetDownloadUrlRequest downloadRequest = new() { FileName = settingsDeployment.AssetFileName };
 
             var uriDownResult = await PlayFabMultiplayerAPI.GetAssetDownloadUrlAsync(downloadRequest);
 
             if (uriDownResult == null)
             {
-                GetAssetUploadUrlRequest request1 = new() { FileName = "gamified.zip" };
+                GetAssetUploadUrlRequest request1 = new() { FileName = settingsDeployment.AssetFileName };
 
                 var uriResult = await PlayFabMultiplayerAPI.GetAssetUploadUrlAsync(request1);
 

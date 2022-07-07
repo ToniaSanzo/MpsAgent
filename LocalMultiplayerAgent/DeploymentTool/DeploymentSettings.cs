@@ -3,9 +3,10 @@
 
 namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent.DeploymentTool
 {
-    using System;
+    //using System;
     using System.Collections.Generic;
-    using AgentInterfaces;
+    //using AgentInterfaces;
+    using PlayFab.MultiplayerModels;
 
     public class DeploymentSettings
     {
@@ -17,6 +18,8 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent.DeploymentTool
 
         public string OSPlatform { get; set; }
 
-        public List<RegionConfiguration> RegionConfigurations { get; set; }
+        public string AssetFileName { get; set; }
+
+        public List<BuildRegionParams> RegionConfigurations { get; set; }
     }
 }

@@ -9,5 +9,6 @@
             "StandbyServers": 5
         }
     ],
-    "OSPlatform": "Windows"
+    "OSPlatform": "Windows",
+    "AssetFileName": "gameasset.zip"
 }
