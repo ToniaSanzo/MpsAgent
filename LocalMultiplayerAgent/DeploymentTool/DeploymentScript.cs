@@ -11,7 +11,7 @@ using Microsoft.Azure.Gaming.LocalMultiplayerAgent.DeploymentTool;
 using Microsoft.WindowsAzure.Storage.Blob;
 
 namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent.MPSDeploymentTool
-{
+{//hello
     public class DeploymentScript
     {
         private readonly MultiplayerSettings settings;
