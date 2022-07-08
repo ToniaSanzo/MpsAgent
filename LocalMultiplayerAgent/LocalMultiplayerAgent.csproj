@@ -27,6 +27,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning" Version="4.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="3.0.0-preview5.19227.9" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.0.0" />
+    <PackageReference Include="PlayFabAllSDK" Version="1.108.220118" />
     <PackageReference Include="WindowsAzure.Storage" Version="9.3.3" />
   </ItemGroup>
   <ItemGroup>
@@ -36,7 +37,6 @@
     <Folder Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\Users\t-emidun\Downloads\CSharpSDK-1.117.220406\CSharpSDK-1.117.220406\PlayFabSDK\source\PlayFabSDK.csproj" />
     <ProjectReference Include="..\AgentInterfaces\AgentInterfaces.csproj" />
     <ProjectReference Include="..\VmAgent.Core\VmAgent.Core.csproj" />
   </ItemGroup>

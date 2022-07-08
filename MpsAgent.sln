@@ -15,8 +15,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LocalMultiplayerAgent.UnitT
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VmAgent.Core.UnitTests", "VmAgent.Core.UnitTests\VmAgent.Core.UnitTests.csproj", "{578663D1-C3F9-4546-A2E5-1ED9485293C5}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PlayFabSDK", "..\..\..\Users\t-emidun\Downloads\CSharpSDK-1.117.220406\CSharpSDK-1.117.220406\PlayFabSDK\source\PlayFabSDK.csproj", "{84751680-59D9-4CFB-AA97-597686440A27}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -47,10 +45,6 @@ Global
 		{578663D1-C3F9-4546-A2E5-1ED9485293C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{578663D1-C3F9-4546-A2E5-1ED9485293C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{578663D1-C3F9-4546-A2E5-1ED9485293C5}.Release|Any CPU.Build.0 = Release|Any CPU
-		{84751680-59D9-4CFB-AA97-597686440A27}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{84751680-59D9-4CFB-AA97-597686440A27}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{84751680-59D9-4CFB-AA97-597686440A27}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{84751680-59D9-4CFB-AA97-597686440A27}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

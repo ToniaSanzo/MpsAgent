@@ -22,7 +22,114 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent.MPSDeploymentTool
             settingsDeployment = JsonConvert.DeserializeObject<DeploymentSettings>(File.ReadAllText("DeploymentTool/deployment.json"));
         }
 
-        public CreateBuildWithCustomContainerRequest GetCustomContainerRequest(List<PlayFab.MultiplayerModels.Port> ports)
+        public async Task RunScriptAsync()
+        { 
+            PlayFabSettings.staticSettings.TitleId = settings.TitleId;
+
+            string secret = Environment.GetEnvironmentVariable("PF_SECRET");
+            if (string.IsNullOrEmpty(secret))
+            {
+                Console.WriteLine("Enter developer secret key");
+                PlayFabSettings.staticSettings.DeveloperSecretKey = Console.ReadLine();
+            }
+
+            var req = new PlayFab.AuthenticationModels.GetEntityTokenRequest();
+            var res = await PlayFabAuthenticationAPI.GetEntityTokenAsync(req);
+
+            if (res.Error != null)
+            {
+                Console.WriteLine(res.Error.ErrorMessage);
+                return;
+            }
+
+
+            // do validation checks
+
+            
+
+            // if Os is windows and Container mode is True
+            // Call method A to get CreateBuildWithCustomContainerRequest
+            // else you call method B to get CreateBuildWithProcessBasedServerRequest
+            dynamic request = null;
+            if (settings.RunContainer)
+            {
+                if (settingsDeployment.OSPlatform == "Windows")
+                {
+                    //run get managedcontainer request
+                    request = GetManagedContainerRequest();
+                }
+                else
+                {
+                    //ask user
+                }
+            }
+            else
+            {
+                //run get processbased request
+                request = GetProcessBasedServerRequest();
+            }
+
+            //check asset files
+            Console.WriteLine($"");
+            foreach (var file in request.GameAssetReferences)
+            {
+                await CheckAssetFiles(file.FileName);
+            }
+
+
+            //create build
+            dynamic createBuild = null;
+            if (settings.RunContainer)
+            {
+                if (settingsDeployment.OSPlatform == "Windows")
+                {
+                    //run get managedcontainer request
+                    createBuild = CreateBuildWithManagedContainer(request);
+                }
+                else
+                {
+                    //ask user
+                }
+            }
+            else
+            {
+                //run get processbased request
+                createBuild = await CreateBuildWithProcessBasedServer(request);
+            }
+
+            if (createBuild.Error != null)
+            {
+                foreach (var err in createBuild.Error.ErrorDetails)
+                {
+                    foreach (var mess in err.Value)
+                    {
+                        Console.WriteLine($"{mess}");
+                    }
+
+                }
+            }
+
+            //Console.WriteLine("done");
+        }
+
+        public List<PlayFab.MultiplayerModels.Port> PortMapping()
+        {
+            List<PlayFab.MultiplayerModels.Port> ports = null;
+
+            foreach (var portList in settings.PortMappingsList)
+            {
+                ports = portList?.Select(x => new PlayFab.MultiplayerModels.Port()
+                {
+                    Name = x.GamePort.Name,
+                    Num = settings.RunContainer ? x.GamePort.Number : 0,
+                    Protocol = (ProtocolType)Enum.Parse(typeof(ProtocolType), x.GamePort.Protocol)
+                }).ToList();
+            }
+
+            return ports;
+        }
+
+        public CreateBuildWithCustomContainerRequest GetCustomContainerRequest()
         {
             return new CreateBuildWithCustomContainerRequest
             {
@@ -34,7 +141,7 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent.MPSDeploymentTool
                     ImageName = settings.ContainerStartParameters.ImageDetails.ImageName,
                     Tag = settings.ContainerStartParameters.ImageDetails.ImageTag
                 },
-                Ports = ports,
+                Ports = PortMapping(),
                 ContainerRunCommand = settings.ContainerStartParameters.StartGameCommand,
                 RegionConfigurations = settingsDeployment.RegionConfigurations?.Select(x => new BuildRegionParams()
                 {
@@ -49,13 +156,13 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent.MPSDeploymentTool
             };
         }
 
-        public CreateBuildWithManagedContainerRequest GetManagedContainerRequest(List<PlayFab.MultiplayerModels.Port> ports)
+        public CreateBuildWithManagedContainerRequest GetManagedContainerRequest()
         {
             return new CreateBuildWithManagedContainerRequest
             {
                 VmSize = (AzureVmSize)Enum.Parse(typeof(AzureVmSize), settingsDeployment.VmSize),
                 GameCertificateReferences = null,
-                Ports = ports,
+                Ports = PortMapping(),
                 MultiplayerServerCountPerVm = settingsDeployment.MultiplayerServerCountPerVm,
                 RegionConfigurations = settingsDeployment.RegionConfigurations?.Select(x => new BuildRegionParams()
                 {
@@ -69,7 +176,7 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent.MPSDeploymentTool
                 BuildName = settingsDeployment.BuildName,
                 GameAssetReferences = settings.AssetDetails?.Select(x => new AssetReferenceParams()
                 {
-                    FileName = x.LocalFilePath,
+                    FileName = GetAssetFileNameFromPath(x.LocalFilePath),
                     MountPath = x.MountPath
                 }).ToList(),
                 StartMultiplayerServerCommand = settings.ContainerStartParameters.StartGameCommand,
@@ -77,13 +184,18 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent.MPSDeploymentTool
             };
         }
 
-        public CreateBuildWithProcessBasedServerRequest GetProcessBasedServerRequest(List<PlayFab.MultiplayerModels.Port> ports)
+        public string GetAssetFileNameFromPath(string filePath)
+        {
+            return System.IO.Path.GetFileName(filePath);
+        }
+
+        public CreateBuildWithProcessBasedServerRequest GetProcessBasedServerRequest()
         {
             return new CreateBuildWithProcessBasedServerRequest
             {
                 VmSize = (AzureVmSize)Enum.Parse(typeof(AzureVmSize), settingsDeployment.VmSize),
                 GameCertificateReferences = null,
-                Ports = ports,
+                Ports = PortMapping(),
                 MultiplayerServerCountPerVm = settingsDeployment.MultiplayerServerCountPerVm,
                 RegionConfigurations = settingsDeployment.RegionConfigurations?.Select(x => new BuildRegionParams()
                 {
@@ -97,8 +209,8 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent.MPSDeploymentTool
                 BuildName = settingsDeployment.BuildName,
                 GameAssetReferences = settings.AssetDetails?.Select(x => new AssetReferenceParams()
                 {
-                    FileName = x.LocalFilePath,
-                    MountPath = x.MountPath
+                    FileName = GetAssetFileNameFromPath(x.LocalFilePath),
+                    //MountPath = x.MountPath
                 }).ToList(),
                 StartMultiplayerServerCommand = settings.ProcessStartParameters.StartGameCommand,
                 OsPlatform = settingsDeployment.OSPlatform
@@ -135,6 +247,7 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent.MPSDeploymentTool
 
         public async Task CheckAssetFiles(string filename)
         {
+           
             var filevalidator = FileExists(filename);
 
             if (filevalidator.Result.Result == null)
@@ -158,110 +271,6 @@ namespace Microsoft.Azure.Gaming.LocalMultiplayerAgent.MPSDeploymentTool
             {
                 Console.WriteLine($"{filevalidator.Result.Error.ErrorMessage}");
             }
-        }
-
-
-        public async Task RunScriptAsync()
-        {
-            const string buildFriendlyName = "bbb";
-            string buildName = $"{buildFriendlyName}_{Guid.NewGuid()}";
-
-            PlayFabSettings.staticSettings.TitleId = settings.TitleId;
-
-            string secret = Environment.GetEnvironmentVariable("PF_SECRET");
-            if (string.IsNullOrEmpty(secret))
-            {
-                Console.WriteLine("Enter developer secret key");
-                PlayFabSettings.staticSettings.DeveloperSecretKey = Console.ReadLine();
-            }
-
-           var req = new PlayFab.AuthenticationModels.GetEntityTokenRequest();
-           var res = await PlayFabAuthenticationAPI.GetEntityTokenAsync(req);
-
-            if (res.Error == null)
-            {
-                Console.WriteLine(res.Error.ErrorMessage);
-                return;
-            }
-
-
-            // do validation checks
-
-            List<PlayFab.MultiplayerModels.Port> ports = null;
-
-            foreach (var portList in settings.PortMappingsList)
-            {
-                ports = portList?.Select(x => new PlayFab.MultiplayerModels.Port()
-                {
-                    Name = x.GamePort.Name,
-                    Num = x.GamePort.Number,
-                    Protocol = (ProtocolType)Enum.Parse(typeof(ProtocolType), x.GamePort.Protocol)
-                }).ToList();
-            }
-
-            // if Os is windows and Container mode is True
-            // Call method A to get CreateBuildWithCustomContainerRequest
-            // else you call method B to get CreateBuildWithProcessBasedServerRequest
-            dynamic request = null;
-            if(settings.RunContainer)
-            {
-                if(settingsDeployment.OSPlatform == "Windows")
-                {
-                    //run get managedcontainer request
-                    request = GetManagedContainerRequest(ports);
-                }
-                else
-                {
-                    //ask user
-                }
-            }
-            else
-            {
-                //run get processbased request
-                request = GetProcessBasedServerRequest(ports);
-            }
-
-            //check asset files
-            Console.WriteLine($"");
-            foreach (var file in settingsDeployment.AssetFileNames)
-            {
-                await CheckAssetFiles(file);
-            }
-                
-
-            //create build
-            dynamic createBuild = null;
-            if (settings.RunContainer)
-            {
-                if (settingsDeployment.OSPlatform == "Windows")
-                {
-                    //run get managedcontainer request
-                    createBuild = CreateBuildWithManagedContainer(request);
-                }
-                else
-                {
-                    //ask user
-                }
-            }
-            else
-            {
-                //run get processbased request
-                createBuild = await CreateBuildWithProcessBasedServer(request);
-            }
-
-            if (createBuild.Error != null)
-            {
-                foreach (var err in createBuild.Error.ErrorDetails)
-                {
-                    foreach (var mess in err.Value)
-                    {
-                        Console.WriteLine($"{mess}");
-                    }
-
-                }
-            }
-
-            //Console.WriteLine("done");
         }
     }
  

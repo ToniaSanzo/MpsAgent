@@ -1,5 +1,5 @@
 {
-    "RunContainer": false,
+    "RunContainer": true,
     "CreateDeployment": true,
   "OutputFolder": "",
   "NumHeartBeatsForActivateResponse": 5,
@@ -19,7 +19,7 @@
   "PortMappingsList": [
     [
       {
-        "NodePort": 56104,
+        "NodePort": 56100,
         "GamePort": {
           "Name": "game_port",
           "Number": 3600,
@@ -31,20 +31,20 @@
     "ProcessStartParameters": {
         "StartGameCommand": "wrapper.exe -g fakegame.exe arg1 arg2"
     },
-  "ContainerStartParameters": {
-    "StartGameCommand": "C:\\Assets\\<your_game_server_exe>",
-    "ResourceLimits": {
-      "Cpus": 0,
-      "MemoryGib": 0
+    "ContainerStartParameters": {
+        "StartGameCommand": "C:\\Assets\\wrapper.exe -g fakegame.exe arg1 arg2",
+        "ResourceLimits": {
+            "Cpus": 0,
+            "MemoryGib": 0
+        },
+        "ImageDetails": {
+            "Registry": "mcr.microsoft.com",
+            "ImageName": "playfab/multiplayer",
+            "ImageTag": "wsc-10.0.17763.2458",
+            "Username": "",
+            "Password": ""
+        }
     },
-    "ImageDetails": {
-      "Registry": "mcr.microsoft.com",
-      "ImageName": "playfab/multiplayer",
-      "ImageTag": "wsc-10.0.17763.2458",
-      "Username": "",
-      "Password": ""
-    }
-  },
   "SessionConfig": {
     "SessionId": "ba67d671-512a-4e7d-a38c-2329ce181946",
     "SessionCookie": null,

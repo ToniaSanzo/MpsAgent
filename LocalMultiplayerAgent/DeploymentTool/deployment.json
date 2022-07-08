@@ -1,5 +1,5 @@
 {
-    "BuildName": "GameBuildName",
+    "BuildName": "GameContainerW",
     "VmSize": "Standard_D2_v2",
     "MultiplayerServerCountPerVm": 10,
     "RegionConfigurations": [
@@ -10,5 +10,7 @@
         }
     ],
     "OSPlatform": "Windows",
-    "AssetFileName": "gameasset.zip"
+    "AssetFileNames": [
+        "gamasset.zip"
+    ]
 }
